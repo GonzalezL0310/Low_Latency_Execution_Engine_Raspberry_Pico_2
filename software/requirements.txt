@@ -1,3 +1,7 @@
 # Python dependencies
 ccxt==4.5.0        # For exchange API connectivity (Binance/etc)
 pyserial==3.5      # For UART communication
+websocket-client==1.6.1
+
+
+
