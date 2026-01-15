@@ -1,0 +1,41 @@
+# --- System Files ---
+.DS_Store
+thumbs.db
+*.swp
+*.log
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env
+*.egg-info/
+.pytest_cache/
+
+# --- SQLite Databases (IMPORTANT) ---
+# We keep the schema.sql in Git, but NEVER the actual data files.
+software/data/*.db
+software/data/*.db-wal
+software/data/*.db-shm
+
+# --- C++ / Raspberry Pi Pico 2 (Pico SDK) ---
+# Ignore the build directory where all binaries and object files live
+**/build/
+.vscode/
+.cmake/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.bin
+*.elf
+*.map
+*.uf2
+*.hex
+
+# --- ETL & Reports ---
+# Ignore generated CSVs or exports
+scripts/*.csv
