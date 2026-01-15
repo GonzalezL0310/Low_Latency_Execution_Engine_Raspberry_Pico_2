@@ -17,6 +17,9 @@
 #define BLINK_REPORT_MS      50   // Parpadeo corto por envío exitoso
 #define BLINK_CRC_ERROR_MS   100  // Velocidad de parpadeo por error de CRC
 
+// --- Porcentaje de cambio de coste
+#define VARIATION 0.99995f
+
 enum ParserState {
     SEARCH_HEADER,
     COLLECT_PAYLOAD,
@@ -133,7 +136,7 @@ int main() {
                 case SEARCH_HEADER:
                     buffer[bytes_received++] = byte;
                     if (bytes_received == 2) {
-                        uint16_t header = (buffer[0] << 8) | buffer[1];
+                        uint16_t header = (buffer[1] << 8) | buffer[0];
                         if (header == FRAME_HEADER) {
                             current_state = COLLECT_PAYLOAD;
                         } else {
@@ -160,7 +163,7 @@ int main() {
                         
                         // Lógica de Decisión
                         if (frame->status == 0x01) {
-                            if (!in_position && frame->price < (frame->sma * 0.995f)) {
+                            if (!in_position && frame->price < (frame->sma * VARIATION)) {
                                 in_position = true;
                             } else if (in_position && frame->price > frame->sma) {
                                 in_position = false;

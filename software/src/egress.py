@@ -8,7 +8,7 @@ import os
 DB_PATH = os.path.join("..", "data", "market_data.db")
 SERIAL_PORT = "/dev/ttyACM0" 
 BAUDRATE = 921600
-FRAME_FORMAT = "!H B f f B"
+FRAME_FORMAT = "<H B f f B"
 HEADER = 0xAA55
 SEND_INTERVAL = 0.1 
 
@@ -65,7 +65,7 @@ def main():
                 status = 0x01 if (price is not None and sma is not None) else 0x00
             
             # Construcción de la trama de 12 bytes
-            pre_pack = struct.pack("!H B f f", HEADER, status, price, sma)
+            pre_pack = struct.pack("<H B f f", HEADER, status, price, sma)
             crc = compute_crc8(pre_pack)
             frame = struct.pack(FRAME_FORMAT, HEADER, status, price, sma, crc)
             
