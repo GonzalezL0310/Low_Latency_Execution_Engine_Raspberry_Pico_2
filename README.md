@@ -41,9 +41,56 @@ A deterministic trading execution engine architecture designed for high-frequenc
 - **Analysis:** Support for manual export to Power BI / Excel for performance metrics and dashboards.
 
 ## Tech Stack
-- **Languages:** Python 3.10+, C++ (Pico SDK).
+- **Languages:** Python 3.12.3, C++ (Pico SDK).
 - **Database:** SQLite3 (WAL Mode).
-- **Tools:** CMake, Bash, AWK, Git, Linux Cron.
+- **Tools:** CMake, Bash, AWK, Linux Cron.
 
-## Setup Instructions
-(To be updated as development progresses)
+## Setup & Execution
+
+### 1. Environment Preparation
+Before starting, ensure your Linux system is up to date and you have the **Pico SDK** installed and exported in your environment variables (`$PICO_SDK_PATH`).
+
+```bash
+# Clone the repository
+git clone <your-repository-url>
+cd <project-folder>
+
+# Grant execution permissions to all scripts
+chmod +x *.sh scripts/*.sh
+```
+
+### 2. Automated Installation
+The following script handles system dependencies, Python virtual environment setup, and SQLite database initialization (WAL Mode).
+
+```bash
+./setup_all.sh
+```
+
+### 3. Firmware deploy
+Deploy the deterministic execution motor to the hardware.
+
+- Connect the Raspberry Pi Pico 2 to your PC while holding the BOOTSEL button.
+- Compile and flash the firmware:
+
+```bash
+./build_firmware.sh
+```
+
+### 4. Running the System
+The execution sequence follows a strict order to ensure data stabilization and synchronization.
+
+```bash
+./run_system.sh
+```
+
+This command will:
+
+- Launch the Market Data Capture via WebSocket.
+- Initialize the Egress Hot Path.
+- Start the Host Engine & Auditor thread.
+- Configure a Cron Job for hourly performance reports.
+
+## Extra
+- Monitoring: Use tail -f software/data/market data.db (or a sqlite browser) to verify real-time ingestion.
+- Logs: System events and trade audits are stored in software/data/audit.db.
+- Cleanup: To stop all background processes, use pkill -f python3.
