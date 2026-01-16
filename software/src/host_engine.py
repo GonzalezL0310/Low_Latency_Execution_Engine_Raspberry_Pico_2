@@ -93,9 +93,14 @@ def egress_thread(ser):
         row = cursor_mkt.fetchone()
         
         if row:
-            price, sma = row
-            status = 0x01 if price and sma else 0x00
-            
+            db_price, db_sma = row
+            if db_price is not None and db_sma is not None:
+                price = float(db_price)
+                sma = float(db_sma)
+                status = 0x01
+            else:
+                price, sma, status = 0.0, 0.0, 0x00
+
             # Binary frame construction (12 bytes)
             pre_pack = struct.pack("<H B f f", HEADER, status, price, sma)
             crc = compute_crc8(pre_pack)

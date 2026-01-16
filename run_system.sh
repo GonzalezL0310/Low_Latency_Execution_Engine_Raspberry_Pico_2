@@ -29,8 +29,8 @@ python3 "$CAPTURE_SCRIPT" &
 CAPTURE_PID=$!
 
 # 4. Step 2: Delay for stabilization
-echo "[STEP 2] Waiting 30 seconds for data stabilization..."
-sleep 30
+echo "[STEP 2] Waiting 5 seconds for data stabilization..."
+sleep 5
 
 # 5. Step 3: Launch Egress (Background)
 echo "[STEP 3] Launching Egress Hot Path..."

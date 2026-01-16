@@ -60,11 +60,17 @@ def main():
             status = 0x00 
             price = 0.0
             sma = 0.0
-            
+
             if data:
-                price, sma, ts = data
-                status = 0x01 if (price is not None and sma is not None) else 0x00
-            
+                db_price, db_sma, ts = data
+
+                if db_price is not None and db_sma is not None:
+                    price = float(db_price)
+                    sma = float(db_sma)
+                    status = 0x01
+                else:
+                    pass
+
             # Construction of the 12-byte frame
             pre_pack = struct.pack("<H B f f", HEADER, status, price, sma)
             crc = compute_crc8(pre_pack)

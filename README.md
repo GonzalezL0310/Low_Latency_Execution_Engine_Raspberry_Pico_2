@@ -91,6 +91,16 @@ This command will:
 - Configure a Cron Job for hourly performance reports.
 
 ## Extra
-- Monitoring: Use tail -f software/data/market data.db (or a sqlite browser) to verify real-time ingestion.
+- Monitoring:
+```bash 
+#You can watch the database in real time with
+watch -n 1 "sqlite3 software/data/audit.db 'SELECT timestamp, side, price FROM trades ORDER BY id DESC LIMIT 15;'"
+
+#You can generate a report anytime with
+./scripts/generate_report.sh
+
+#The report will be generated in
+/reports/trades_hourly.csv
+```
 - Logs: System events and trade audits are stored in software/data/audit.db.
 - Cleanup: To stop all background processes, use pkill -f python3.
