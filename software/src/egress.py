@@ -5,7 +5,8 @@ import time
 import os
 
 # --- Configuration ---
-DB_PATH = os.path.join("..", "data", "market_data.db")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.abspath(os.path.join(BASE_DIR, "..", "data", "market_data.db"))
 SERIAL_PORT = "/dev/ttyACM0" 
 BAUDRATE = 921600
 FRAME_FORMAT = "<H B f f B"

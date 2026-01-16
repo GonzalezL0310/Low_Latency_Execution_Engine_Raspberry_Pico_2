@@ -7,8 +7,9 @@ from datetime import datetime
 import os
 
 # --- Configuration ---
-DB_MARKET = os.path.join("..", "data", "market_data.db")
-DB_AUDIT = os.path.join("..", "data", "audit.db")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_MARKET = os.path.abspath(os.path.join(BASE_DIR, "..", "data", "market_data.db"))
+DB_AUDIT = os.path.abspath(os.path.join(BASE_DIR, "..", "data", "audit.db"))
 SERIAL_PORT = "/dev/ttyACM0"
 BAUDRATE = 921600
 FRAME_FORMAT = "<H B f f B" # Little-endian as in the firmware
@@ -75,6 +76,9 @@ def ingress_thread(ser):
                             print(f"[ERROR] Data corruption in Ingress. CRC mismatch.")
             except Exception as e:
                 print(f"[ERROR B] Parsing failed: {e}")
+
+        else:
+            time.sleep(0.05)
 
 # --- Thread A: Egress (Dispatch) ---
 def egress_thread(ser):

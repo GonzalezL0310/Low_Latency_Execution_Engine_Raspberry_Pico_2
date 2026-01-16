@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # --- Path Configuration ---
+cd "$(dirname "$0")"
+
 DB_PATH="../software/data/audit.db"
 REPORT_DIR="../reports"
 OUTPUT_FILE="$REPORT_DIR/trades_hourly.csv"

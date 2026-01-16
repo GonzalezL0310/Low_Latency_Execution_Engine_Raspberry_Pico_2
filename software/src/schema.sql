@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS market_ticks (
     timestamp DATETIME DEFAULT (STRFTIME('%Y-%m-%d %H:%M:%f', 'NOW')),
     price REAL NOT NULL,
     volume REAL,
-    sma_30 REAL -- Pre-calculated SMA for the last 30 samples
+    sma REAL -- Pre-calculated SMA for the last 30 samples
 );
 
 -- System events for auditing connection drops

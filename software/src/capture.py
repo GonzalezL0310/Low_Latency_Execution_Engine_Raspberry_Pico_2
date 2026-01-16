@@ -5,7 +5,8 @@ import sys
 import os
 
 # --- Configuration ---
-DB_PATH = os.path.join("..", "data", "market_data.db")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.abspath(os.path.join(BASE_DIR, "..", "data", "market_data.db"))
 SYMBOL = "btcusdt"
 WS_URL = f"wss://stream.binance.com:9443/ws/{SYMBOL}@ticker"
 SMA_WINDOW = 30  # Number of samples for the Simple Moving Average
