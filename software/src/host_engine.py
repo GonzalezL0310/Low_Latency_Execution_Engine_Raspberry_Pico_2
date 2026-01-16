@@ -6,12 +6,12 @@ import time
 from datetime import datetime
 import os
 
-# --- Configuración ---
+# --- Configuration ---
 DB_MARKET = os.path.join("..", "data", "market_data.db")
 DB_AUDIT = os.path.join("..", "data", "audit.db")
 SERIAL_PORT = "/dev/ttyACM0"
 BAUDRATE = 921600
-FRAME_FORMAT = "<H B f f B" # Little-endian como en el firmware
+FRAME_FORMAT = "<H B f f B" # Little-endian as in the firmware
 HEADER = 0xAA55
 
 def compute_crc8(data: bytes) -> int:
@@ -26,7 +26,7 @@ def compute_crc8(data: bytes) -> int:
 
 def init_audit_db():
     conn = sqlite3.connect(DB_AUDIT)
-    conn.execute("PRAGMA journal_mode=WAL;") # Consistencia y concurrencia
+    conn.execute("PRAGMA journal_mode=WAL;") # Consistency and concurrency
     conn.execute("""
         CREATE TABLE IF NOT EXISTS trades (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -39,26 +39,26 @@ def init_audit_db():
     conn.commit()
     conn.close()
 
-# --- Hilo B: Ingress (Auditor) ---
+# --- Thread B: Ingress (Auditor) ---
 def ingress_thread(ser):
-    print("[THREAD B] Auditor iniciado.")
+    print("[THREAD B] Auditor started.")
     conn = sqlite3.connect(DB_AUDIT)
     cursor = conn.cursor()
 
     while True:
         if ser.in_waiting > 0:
             try:
-                # Leemos hasta el salto de línea (Formato ASCII de la Pico)
+                # Read until newline (Pico's ASCII format)
                 line = ser.readline().decode('ascii').strip()
                 if line.startswith("TRD:"):
-                    # Formato: TRD:{SIDE}:{PRICE}:{CRC}
+                    # Format: TRD:{SIDE}:{PRICE}:{CRC}
                     parts = line.split(':')
                     if len(parts) == 4:
                         side_val = int(parts[1])
                         price = float(parts[2])
                         received_crc = int(parts[3], 16)
                         
-                        # VALIDACIÓN CRC: Empaquetamos igual que la Pico para verificar
+                        # CRC VALIDATION: Pack exactly like the Pico to verify
                         # temp_buf[0]=side, temp_buf[1..4]=price
                         check_data = struct.pack("<Bf", side_val, price)
                         computed_crc = compute_crc8(check_data)
@@ -70,16 +70,16 @@ def ingress_thread(ser):
                                 (side_str, price, hex(received_crc))
                             )
                             conn.commit()
-                            print(f"\a[AUDIT] ORDEN EJECUTADA: {side_str} a {price:.4f}")
+                            print(f"\a[AUDIT] ORDER EXECUTED: {side_str} at {price:.4f}")
                         else:
-                            print(f"[ERROR] Corrupción de datos en Ingress. CRC mismatch.")
+                            print(f"[ERROR] Data corruption in Ingress. CRC mismatch.")
             except Exception as e:
-                print(f"[ERROR B] Fallo en el parseo: {e}")
+                print(f"[ERROR B] Parsing failed: {e}")
 
-# --- Hilo A: Egress (Despacho) ---
+# --- Thread A: Egress (Dispatch) ---
 def egress_thread(ser):
-    print("[THREAD A] Despacho iniciado.")
-    # Reutilizamos la lógica de polling de egress.py
+    print("[THREAD A] Dispatch started.")
+    # Reuse polling logic from egress.py
     conn_mkt = sqlite3.connect(DB_MARKET)
     cursor_mkt = conn_mkt.cursor()
 
@@ -92,7 +92,7 @@ def egress_thread(ser):
             price, sma = row
             status = 0x01 if price and sma else 0x00
             
-            # Construcción de trama binaria de 12 bytes
+            # Binary frame construction (12 bytes)
             pre_pack = struct.pack("<H B f f", HEADER, status, price, sma)
             crc = compute_crc8(pre_pack)
             frame = struct.pack(FRAME_FORMAT, HEADER, status, price, sma, crc)
@@ -101,9 +101,9 @@ def egress_thread(ser):
                 ser.write(frame)
                 ser.flush()
             except serial.SerialTimeoutException:
-                pass # Evitamos colgar el hilo si el buffer se llena
+                pass # Avoid hanging the thread if the buffer fills up
 
-        # Mantenemos el intervalo de 100ms para no saturar el bus
+        # Keep 100ms interval to avoid bus saturation
         elapsed = time.time() - start_time
         time.sleep(max(0, 0.1 - elapsed))
 
@@ -112,12 +112,12 @@ def main():
     
     try:
         ser = serial.Serial(SERIAL_PORT, BAUDRATE, timeout=0.1)
-        print(f"Conectado a Pico 2 en {SERIAL_PORT}")
+        print(f"Connected to Pico 2 at {SERIAL_PORT}")
     except Exception as e:
-        print(f"CRÍTICO: {e}")
+        print(f"CRITICAL: {e}")
         return
 
-    # Lanzamiento de Hilos
+    # Launch Threads
     t_a = threading.Thread(target=egress_thread, args=(ser,), daemon=True)
     t_b = threading.Thread(target=ingress_thread, args=(ser,), daemon=True)
     
@@ -125,9 +125,9 @@ def main():
     t_b.start()
 
     try:
-        while True: time.sleep(1) # Mantener vivo el proceso principal
+        while True: time.sleep(1) # Keep main process alive
     except KeyboardInterrupt:
-        print("\nApagando sistema...")
+        print("\nShutting down system...")
         ser.close()
 
 if __name__ == "__main__":

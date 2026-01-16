@@ -4,20 +4,20 @@
 #include "pico/stdio_usb.h"
 #include "hardware/gpio.h"
 
-// --- Configuración de Hardware ---
-#define LED_POSITION     PICO_DEFAULT_LED_PIN // LED Onboard: ON = Compra
-#define LED_DEBUG        2                    // GPIO 2: Status/Reportes/Errores
+// --- Hardware Configuration ---
+#define LED_POSITION     PICO_DEFAULT_LED_PIN // Onboard LED: ON = Buy
+#define LED_DEBUG        2                    // GPIO 2: Status/Reports/Errors
 
-// --- Protocolo de Comunicación (Host -> Pico) ---
+// --- Communication Protocol (Host -> Pico) ---
 #define FRAME_HEADER         0xAA55
 #define FRAME_SIZE           12
 #define HEARTBEAT_TIMEOUT_MS 2000
 
-// --- Tiempos de Interfaz (No bloqueantes) ---
-#define BLINK_REPORT_MS      50   // Parpadeo corto por envío exitoso
-#define BLINK_CRC_ERROR_MS   100  // Velocidad de parpadeo por error de CRC
+// --- Interface Timing (Non-blocking) ---
+#define BLINK_REPORT_MS      50   // Short blink for successful transmission
+#define BLINK_CRC_ERROR_MS   100  // Blink speed for CRC error
 
-// --- Porcentaje de cambio de coste
+// --- Cost variation percentage
 #define VARIATION 0.99995f
 
 enum ParserState {
@@ -34,9 +34,9 @@ struct __attribute__((packed)) MarketFrame {
     uint8_t  crc;
 };
 
-// --- Funciones de Utilidad ---
+// --- Utility Functions ---
 
-// CRC8 para validación de tramas entrantes y salientes
+// CRC8 for incoming and outgoing frame validation
 uint8_t compute_crc8(const uint8_t *data, size_t len) {
     uint8_t crc = 0x00;
     for (size_t i = 0; i < len; i++) {
@@ -49,24 +49,24 @@ uint8_t compute_crc8(const uint8_t *data, size_t len) {
     return crc;
 }
 
-// Envío de reporte de ejecución (Paso 4)
-// Formato: TRD:{SIDE}:{PRICE}:{CRC}\n
+// Execution report transmission (Step 4)
+// Format: TRD:{SIDE}:{PRICE}:{CRC}\n
 void send_execution_report(bool side, float price) {
     char report[64];
     uint8_t side_val = side ? 1 : 0;
     
-    // Preparamos el cuerpo del mensaje para calcular un CRC simple del contenido
-    // Solo calculamos el CRC sobre el Side y el Precio para integridad básica
+    // Prepare the message body to calculate a simple CRC for the content
+    // The CRC is only calculated over Side and Price for basic integrity
     uint8_t temp_buf[5];
     temp_buf[0] = side_val;
     memcpy(&temp_buf[1], &price, 4);
     uint8_t crc = compute_crc8(temp_buf, 5);
 
-    // Formateo ASCII para el Host
+    // ASCII formatting for the Host
     int len = snprintf(report, sizeof(report), "TRD:%d:%.4f:%02X\n", side_val, price, crc);
     
-    // En el SDK de la Pico, printf a través de USB CDC es internamente buferizado.
-    // Al ser un reporte corto y esporádico, no bloqueará el flujo principal.
+    // In the Pico SDK, printf via USB CDC is internally buffered.
+    // Since it is a short and sporadic report, it will not block the main flow.
     if (len > 0) {
         printf("%s", report);
     }
@@ -85,12 +85,12 @@ int main() {
     uint8_t buffer[FRAME_SIZE];
     size_t bytes_received = 0;
     
-    // Variables de Estado de Trading
+    // Trading State Variables
     bool in_position = false;
     bool last_in_position = false;
     absolute_time_t last_valid_frame_time = get_absolute_time();
     
-    // Variables para gestión de LEDs de Debug (Sin bloqueo)
+    // Debug LED management variables (Non-blocking)
     absolute_time_t debug_timer = get_absolute_time();
     bool debug_led_active = false;
     bool crc_error_flag = false;
@@ -98,28 +98,28 @@ int main() {
     while (true) {
         absolute_time_t now = get_absolute_time();
 
-        // 1. Watchdog: Failsafe por pérdida de conexión
-        // Si hay timeout, apagado total (Paso 4.3)
+        // 1. Watchdog: Failsafe for connection loss
+        // Total shutdown upon timeout (Step 4.3)
         if (absolute_time_diff_us(last_valid_frame_time, now) > (HEARTBEAT_TIMEOUT_MS * 1000)) {
             gpio_put(LED_POSITION, 0);
             gpio_put(LED_DEBUG, 0); 
             in_position = false;
-            last_in_position = false; // Reset para disparar reporte al reconectar
+            last_in_position = false; // Reset to trigger report upon reconnection
         }
 
-        // 2. Gestión de parpadeo de LED_DEBUG (No bloqueante)
+        // 2. Debug LED blink management (Non-blocking)
         if (debug_led_active) {
             uint32_t diff = absolute_time_diff_us(debug_timer, now) / 1000;
             if (crc_error_flag) {
-                // Parpadeo rápido para error de CRC
+                // Fast blink for CRC error
                 gpio_put(LED_DEBUG, (diff / BLINK_CRC_ERROR_MS) % 2);
-                if (diff > 500) { // Limitar el parpadeo de error a 500ms
+                if (diff > 500) { // Limit error blink to 500ms
                     debug_led_active = false;
                     crc_error_flag = false;
                     gpio_put(LED_DEBUG, 0);
                 }
             } else {
-                // Pulso corto para reporte enviado
+                // Short pulse for sent report
                 if (diff > BLINK_REPORT_MS) {
                     gpio_put(LED_DEBUG, 0);
                     debug_led_active = false;
@@ -127,7 +127,7 @@ int main() {
             }
         }
 
-        // 3. Lectura de flujo serial (Hot Path)
+        // 3. Serial stream reading (Hot Path)
         int c = getchar_timeout_us(0);
         if (c != PICO_ERROR_TIMEOUT) {
             uint8_t byte = (uint8_t)c;
@@ -161,7 +161,7 @@ int main() {
                         last_valid_frame_time = now;
                         MarketFrame *frame = (MarketFrame *)buffer;
                         
-                        // Lógica de Decisión
+                        // Decision Logic
                         if (frame->status == 0x01) {
                             if (!in_position && frame->price < (frame->sma * VARIATION)) {
                                 in_position = true;
@@ -172,14 +172,14 @@ int main() {
                             in_position = false;
                         }
 
-                        // --- PASO 4: Detección de cambio de estado y Reporte ---
+                        // --- STEP 4: State change detection and Report ---
                         if (in_position != last_in_position) {
                             gpio_put(LED_POSITION, in_position ? 1 : 0);
                             
-                            // Disparo de reporte ASCII
+                            // ASCII report trigger
                             send_execution_report(in_position, frame->price);
                             
-                            // Feedback visual en LED Debug
+                            // Visual feedback on Debug LED
                             gpio_put(LED_DEBUG, 1);
                             debug_timer = now;
                             debug_led_active = true;
@@ -189,7 +189,7 @@ int main() {
                         }
 
                     } else {
-                        // Error de CRC: Activamos parpadeo rápido
+                        // CRC Error: Activate fast blinking
                         crc_error_flag = true;
                         debug_led_active = true;
                         debug_timer = now;

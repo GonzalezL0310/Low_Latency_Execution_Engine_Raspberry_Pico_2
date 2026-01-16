@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 
-# Forzamos la arquitectura de la Pico 2 (RP2350)
+# The architecture of the Pico 2 (RP2350) is being forced
 set(PICO_BOARD pico2)
 
 include(pico_sdk_import.cmake)
@@ -14,10 +14,10 @@ add_executable(pico_engine
     main.cpp
 )
 
-# Librerías estándar
+# Libraries
 target_link_libraries(pico_engine pico_stdlib)
 
-# Configuración de entrada/salida: Todo por USB
+# Input/output configuration: All via USB
 pico_enable_stdio_usb(pico_engine 1)
 pico_enable_stdio_uart(pico_engine 0)
 

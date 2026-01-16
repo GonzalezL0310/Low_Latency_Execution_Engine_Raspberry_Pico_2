@@ -4,7 +4,7 @@ import serial
 import time
 import os
 
-# --- Configuración ---
+# --- Configuration ---
 DB_PATH = os.path.join("..", "data", "market_data.db")
 SERIAL_PORT = "/dev/ttyACM0" 
 BAUDRATE = 921600
@@ -33,14 +33,14 @@ def get_latest_data():
         conn.close()
         return row
     except Exception as e:
-        print(f"Error leyendo DB: {e}")
+        print(f"Error reading DB: {e}")
         return None
 
 def main():
-    print(f"Iniciando Egress Process (Hot Path) en Linux...")
+    print(f"Starting Egress Process (Hot Path) on Linux...")
     
     try:
-        # En Linux, abrimos el puerto sin intentar configurar buffers internos de Windows
+        # In Linux, we open the port without attempting to configure internal Windows buffers
         ser = serial.Serial(
             port=SERIAL_PORT, 
             baudrate=BAUDRATE, 
@@ -48,7 +48,7 @@ def main():
             write_timeout=0.1
         )
     except Exception as e:
-        print(f"CRÍTICO: No se pudo abrir el puerto serial: {e}")
+        print(f"CRITICAL: Could not open serial port: {e}")
         return
 
     try:
@@ -64,21 +64,21 @@ def main():
                 price, sma, ts = data
                 status = 0x01 if (price is not None and sma is not None) else 0x00
             
-            # Construcción de la trama de 12 bytes
+            # Construction of the 12-byte frame
             pre_pack = struct.pack("<H B f f", HEADER, status, price, sma)
             crc = compute_crc8(pre_pack)
             frame = struct.pack(FRAME_FORMAT, HEADER, status, price, sma, crc)
             
             ser.write(frame)
-            ser.flush()  # Crucial: fuerza el envío físico inmediato
+            ser.flush()  # Crucial: forces immediate physical transmission
 
             elapsed = time.time() - start_time
             sleep_time = max(0, SEND_INTERVAL - elapsed)
             time.sleep(sleep_time)
 
     except KeyboardInterrupt:
-        print("\nCerrando comunicación...")
-        # Kill Switch: Avisamos a la Pico que el Host se desconecta
+        print("\nClosing communication...")
+        # Kill Switch: Notify the Pico that the Host is disconnecting
         kill_frame = struct.pack(FRAME_FORMAT, HEADER, 0x00, 0.0, 0.0, 0x00)
         try:
             ser.write(kill_frame)
